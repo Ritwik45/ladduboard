@@ -6,29 +6,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Main Coins</title>
     <style>
-        
         /* Reset default margin and padding */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         .leaderboard-title {
-    font-size: 40px;
-    font-weight: bold;
-}
+            font-size: 40px;
+            font-weight: bold;
+        }
 
         /* Set the font and colors */
         body {
             font-family: 'Ubuntu', sans-serif;
-            background-color: #cadeef; /* Background color */
-            color: #0784b5; /* Text color */
+            background-color: #cadeef;
+            color: #0784b5;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: 20px;
         }
-        
+
         /* Laduboard table styles */
         table {
             width: 100%;
@@ -36,28 +36,29 @@
             border-collapse: collapse;
             margin-top: 20px;
         }
-        
-        th, td {
+
+        th,
+        td {
             padding: 12px 15px;
             text-align: left;
             border: 1px solid #39ace7;
             font-weight: bold;
             cursor: pointer;
         }
-        
+
         th {
             background-color: #0784b5;
             color: #ffffff;
         }
-        
+
         tr:nth-child(even) {
             background-color: #9bd4e4;
         }
-        
+
         tr:nth-child(odd) {
             background-color: #cadeef;
         }
-        
+
         /* Search input styles */
         #coinSearch {
             width: 100%;
@@ -71,12 +72,12 @@
             background-color: #0784b5;
             color: #ffffff;
         }
-        
+
         ::placeholder {
-            color: #cadeef; /* Matching hint text color */
-            opacity: 1; /* Ensuring the placeholder text is visible */
+            color: #cadeef;
+            opacity: 1;
         }
-        
+
         /* Change Mode Button */
         #changeModeButton {
             padding: 10px 20px;
@@ -87,13 +88,13 @@
             color: #ffffff;
             cursor: pointer;
         }
-        
+
         .greenMode {
-            background-color: #4caf50; /* Green */
+            background-color: #4caf50;
         }
 
         .redMode {
-            background-color: #f44336; /* Red */
+            background-color: #f44336;
         }
 
         #changeModeButton:hover {
@@ -131,40 +132,40 @@
         const coinSearchInput = document.getElementById("coinSearch");
         const changeModeButton = document.getElementById("changeModeButton");
         let ascendingOrder = true;
-    
+
         function createCoinElement(rank, coinSymbol) {
             const row = document.createElement("tr");
-    
+
             const rankCell = document.createElement("td");
             rankCell.innerText = rank;
             row.appendChild(rankCell);
-    
+
             const nameCell = document.createElement("td");
             nameCell.innerText = coinSymbol.toUpperCase();
             row.appendChild(nameCell);
-    
+
             const priceChangeCell = document.createElement("td");
             priceChangeCell.innerText = "N/A";
             row.appendChild(priceChangeCell);
-    
+
             const lastPriceCell = document.createElement("td");
             lastPriceCell.innerText = "N/A";
             row.appendChild(lastPriceCell);
-    
+
             const highCell = document.createElement("td");
             highCell.innerText = "N/A";
             row.appendChild(highCell);
-    
+
             const lowCell = document.createElement("td");
             lowCell.innerText = "N/A";
             row.appendChild(lowCell);
-    
+
             const percentageCell = document.createElement("td");
             percentageCell.innerText = "0.00%";
             row.appendChild(percentageCell);
-    
+
             coinInfoContainer.appendChild(row);
-    
+
             return {
                 row,
                 rankCell,
@@ -176,10 +177,10 @@
                 percentage: percentageCell
             };
         }
-    
+
         const coins = {};
         let rank = 1;
-    
+
         const tickerSymbols = [
             "apeusdt", "gmtusdt", "btcusdt", "etcusdt", "ensusdt", "solusdt",
             "trxusdt", "xrpusdt", "rvnusdt", "zilusdt", "adausdt", "dogeusdt",
@@ -189,76 +190,88 @@
             , "nearusdt", "pepeusdt", "bigtime", "icpusdt", "umausdt", "roseusdt", "mkrusdt", "darusdt"
             , "dotusdt", "maticusdt" , "imxusdt", "hbarusdt", "algousdt", "ftmusdt", "xmrusdt", "nknusdt"
         ];
-    
+
         const streams = tickerSymbols.map(symbol => `${symbol}@ticker`).join('/');
-    
+
         const ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
-    
+
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             const coinSymbol = data.data.s;
-    
+
             if (!coins[coinSymbol]) {
                 coins[coinSymbol] = createCoinElement(rank++, coinSymbol);
             }
-    
+
             const coinData = data.data;
             coins[coinSymbol].priceChange.innerText = parseFloat(coinData.p).toFixed(4);
             coins[coinSymbol].lastPrice.innerText = parseFloat(coinData.c).toFixed(4);
             coins[coinSymbol].high.innerText = parseFloat(coinData.h).toFixed(4);
             coins[coinSymbol].low.innerText = parseFloat(coinData.l).toFixed(4);
-    
+
             const lastPrice = parseFloat(coinData.c);
             const highValue = parseFloat(coinData.h);
-            const diff = highValue - lastPrice;
-            const percentageChange = ((diff / highValue) * 100).toFixed(2); // Calculate percentage
-            coins[coinSymbol].percentage.innerText = percentageChange + "%";
+            const lowValue = parseFloat(coinData.l);
+
+            if (ascendingOrder) {
+                const diff = highValue - lastPrice;
+                const percentageChange = ((diff / highValue) * 100).toFixed(2); // Calculate percentage from high
+                coins[coinSymbol].percentage.innerText = percentageChange + "%";
+            } else {
+                const diff = lastPrice - lowValue;
+                const percentageChange = ((diff / lowValue) * 100).toFixed(2); // Calculate percentage from low
+                coins[coinSymbol].percentage.innerText = percentageChange + "%";
+            }
+            sortCoins();
         };
-    
+
         function filterCoins(searchTerm) {
             const coinElements = Object.values(coins);
-    
+
             coinElements.forEach(coin => {
                 const coinName = coin.coinSymbol.toLowerCase();
                 const display = coinName.includes(searchTerm.toLowerCase()) ? "table-row" : "none";
                 coin.row.style.display = display;
             });
         }
-    
+
         // Event listener for input change in the search field
         coinSearchInput.addEventListener("input", () => {
             const searchValue = coinSearchInput.value.trim();
             filterCoins(searchValue);
         });
-    
-// Event listener for Change Mode button
-changeModeButton.addEventListener("click", () => {
-    ascendingOrder = !ascendingOrder;
-    changeModeButton.classList.toggle('greenMode', ascendingOrder);
-    changeModeButton.classList.toggle('redMode', !ascendingOrder);
 
-    const coinElements = Object.values(coins);
-    coinElements.sort((coinA, coinB) => {
-        const percentageChangeA = parseFloat(coinA.percentage.innerText);
-        const percentageChangeB = parseFloat(coinB.percentage.innerText);
-        return ascendingOrder ? percentageChangeA - percentageChangeB : percentageChangeB - percentageChangeA;
-    });
+        // Event listener for Change Mode button
+        changeModeButton.addEventListener("click", () => {
+            ascendingOrder = !ascendingOrder;
+            changeModeButton.classList.toggle('greenMode', ascendingOrder);
+            changeModeButton.classList.toggle('redMode', !ascendingOrder);
 
-    coinInfoContainer.innerHTML = '';
-    coinElements.forEach((coin, index) => {
-        coin.rankCell.innerText = index + 1;
-        coinInfoContainer.appendChild(coin.row);
-    });
+            sortCoins();
 
-    // Update window title based on button color
-    document.title = ascendingOrder ? "LadduBoard" : "LottoBoard";
+            // Update window title based on button color
+            document.title = ascendingOrder ? "LadduBoard" : "LottoBoard";
 
-    // Update text above the table
-    const leaderboardTitle = document.getElementById("leaderboardTitle");
-    leaderboardTitle.innerText = ascendingOrder ? "LadduBoard" : "LottoBoard";
-});
+            // Update text above the table
+            const leaderboardTitle = document.getElementById("leaderboardTitle");
+            leaderboardTitle.innerText = ascendingOrder ? "LadduBoard" : "LottoBoard";
+        });
 
-    
+        function sortCoins() {
+            const coinElements = Object.values(coins);
+            coinElements.sort((coinA, coinB) => {
+                const percentageChangeA = parseFloat(coinA.percentage.innerText);
+                const percentageChangeB = parseFloat(coinB.percentage.innerText);
+                return percentageChangeA - percentageChangeB; // Always sort in ascending order of percentage
+            });
+
+            coinInfoContainer.innerHTML = '';
+            coinElements.forEach((coin, index) => {
+                coin.rankCell.innerText = index + 1;
+                coinInfoContainer.appendChild(coin.row);
+            });
+        }
+
         // Event listener for clicking on a table cell to redirect to TradingView chart
         coinInfoContainer.addEventListener("click", (event) => {
             const clickedElement = event.target;
@@ -268,8 +281,7 @@ changeModeButton.addEventListener("click", () => {
             }
         });
     </script>
-    
+
 </body>
 
 </html>
-
